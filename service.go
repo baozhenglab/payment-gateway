@@ -1,7 +1,7 @@
 package paymentgateway
 
 import (
-	goservice "chat-backend/external/go-sdk"
+	goservice "github.com/baozhenglab/go-sdk"
 )
 
 func NewServicePayment(key string) goservice.PrefixConfigure {

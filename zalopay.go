@@ -35,3 +35,7 @@ func (zp *zalopayService) InitFlags() {
 	flag.StringVar(&zp.version, prefix+"version", "v001", "Version default for zalopay")
 	flag.StringVar(&zp.bankcode, prefix+"bankcode", "zalopayapp", "Bank code default for zalopay")
 }
+
+func (zp *zalopayService) UrlPayment(data interface{}) (*ResponseUrl, error) {
+	return nil, nil
+}

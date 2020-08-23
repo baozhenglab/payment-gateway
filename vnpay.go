@@ -4,7 +4,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"net/http"
 	"strings"
 	"time"
 )
@@ -18,10 +17,6 @@ type VnpayRequest struct {
 	ReturnUrl string `json:"vnp_ReturnUrl"`
 	TxnRef    string `json:"vnp_TxnRef"`
 	Locale    string `json:"vnp_Locale"`
-}
-
-var client = http.Client{
-	Timeout: time.Duration(10 * time.Second),
 }
 
 type VnpayRequestFull struct {

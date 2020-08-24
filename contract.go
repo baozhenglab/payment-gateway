@@ -6,8 +6,15 @@ type ResponseUrl struct {
 	Additional interface{} `json:"additional"`
 }
 
+type ResponseCallback struct {
+	Amount      int32
+	TransID     string
+	ExtractData string
+}
+
 type PaymentService interface {
 	UrlPayment(data interface{}) (*ResponseUrl, error)
+	Callback(data interface{}) (*ResponseCallback, error)
 }
 
 const (

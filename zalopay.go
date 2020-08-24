@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -39,6 +40,27 @@ type RequestCreateOrder struct {
 	Email       string `json:"email"`
 	Address     string `json:"address"`
 	BankCode    string `json:"bankcode"`
+}
+
+type DataCallBackZalo struct {
+	AppID          int32  `json:"appid"`
+	AppTransID     string `json:"apptransid"`
+	AppTime        int64  `json:"apptime"`
+	AppUser        string `json:"appuser"`
+	Amount         int32  `json:"amount"`
+	EmbedData      string `json:"embeddata"`
+	Item           string `json:"item"`
+	ZPTransID      int64  `json:"zptransid"`
+	ServerTime     int64  `json:"servertime"`
+	Channel        int    `json:"channel"`
+	MerchentUserID string `json:"merchantuserid"`
+	UserFeeAmount  int32  `json:"userfeeamount"`
+	DiscountAmount int32  `json:"discountamount"`
+}
+
+type RequestCallBackZalo struct {
+	Data string `json:"data"`
+	Mac  string `json:"mac"`
 }
 
 func (*zalopayService) Name() string {
@@ -82,6 +104,23 @@ func (zp *zalopayService) UrlPayment(data interface{}) (*ResponseUrl, error) {
 	}, nil
 }
 
+func (zp *zalopayService) Callback(data interface{}) (*ResponseCallback, error) {
+	request, ok := data.(RequestCallBackZalo)
+	if !ok {
+		return nil, errors.New("data input must instanof RequestCallBackZalo")
+	}
+	if !zp.checkSumCallback(request.Data, request.Mac) {
+		return nil, errors.New("signature is not correct")
+	}
+	var dataReq DataCallBackZalo
+	json.Unmarshal([]byte(request.Data), &dataReq)
+	return &ResponseCallback{dataReq.Amount, dataReq.AppTransID, dataReq.EmbedData}, nil
+}
+
+func (zp *zalopayService) checkSumCallback(data, mac string) bool {
+	return GenerateHashMacSha256(zp.appSecretKey2, data) == mac
+}
+
 func (zp *zalopayService) requestPayment(request RequestCreateOrder) (*ResponseCreateOrder, error) {
 	body := zp.generateStringCreateOrder(request)
 	url := fmt.Sprintf("%s/%s/%s", zp.baseURL, zp.version, "tpe/createorder")
@@ -113,7 +152,7 @@ func (zp *zalopayService) generateStringCreateOrder(request RequestCreateOrder) 
 	jsonValue, _ := json.Marshal(request)
 	var mapStr map[string]interface{}
 	json.Unmarshal(jsonValue, &mapStr)
-	mapStr["apptime"] = fmt.Sprintf("%d", time.Now().Unix())
+	mapStr["apptime"] = fmt.Sprintf("%d", time.Now().Local().Add(time.Minute*time.Duration(5)).UnixNano()/int64(time.Millisecond))
 	mapStr["appid"] = fmt.Sprintf("%d", zp.appid)
 	if bankcode, ok := mapStr["bankcode"]; !ok || fmt.Sprintf("%s", bankcode) == "" {
 		mapStr["bankcode"] = zp.bankcode
@@ -125,7 +164,7 @@ func (zp *zalopayService) generateStringCreateOrder(request RequestCreateOrder) 
 	mapStr["mac"] = GenerateHashMacSha256(zp.appSecretKey1, hmacinput)
 	body := ""
 	for key, value := range mapStr {
-		body += fmt.Sprintf("%s=%s&", key, value)
+		body += fmt.Sprintf("%s=%s&", key, url.QueryEscape(fmt.Sprintf("%s", value)))
 	}
 	return body[:len(body)-1]
 }

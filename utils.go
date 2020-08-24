@@ -73,7 +73,16 @@ func generateQueryBasic(data interface{}) string {
 	}
 	sort.Strings(keys)
 	for _, key := range keys {
-		str += (key + "=" + fmt.Sprintf("%s", jsonStr[key]) + "&")
+		format := "%s"
+		if checkTypeNumber(jsonStr[key]) {
+			format = "%.0f"
+		}
+		str += (key + "=" + fmt.Sprintf(format, jsonStr[key]) + "&")
 	}
 	return str[:len(str)-1]
+}
+
+func checkTypeNumber(data interface{}) bool {
+	t := fmt.Sprintf("%T", data)
+	return indexOfString([]string{"int", "int32", "int64", "float64"}, t) > -1
 }

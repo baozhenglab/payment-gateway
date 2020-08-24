@@ -1,6 +1,7 @@
 package paymentgateway
 
 import (
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -39,6 +40,21 @@ type vnpayService struct {
 	hashType   string
 	hashSecret string
 	baseURL    string
+}
+
+type VnpayRequestCallback struct {
+	TmnCode    string `form:"vnp_TmnCode" json:"vnp_TmnCode"`
+	Amount     int32  `form:"vnp_Amount" json:"vnp_Amount"`
+	Bankcode   string `form:"vnp_BankCode" json:"vnp_BankCode"`
+	BankTranNo string `form:"vnp_BankTranNo" json:"vnp_BankTranNo"`
+	CardType   string `form:"vnp_CardType" json:"vnp_CardType"`
+	PayDate    int64  `form:"vnp_PayDate" json:"vnp_PayDate"`
+	// CurrCode      string `form:"vnp_CurrCode" json:"vnp_CurrCode"`
+	OrderInfo     string `form:"vnp_OrderInfo" json:"vnp_OrderInfo"`
+	TransactionNo int64  `form:"vnp_TransactionNo" json:"vnp_TransactionNo"`
+	ResponseCode  string `form:"vnp_ResponseCode" json:"vnp_ResponseCode"`
+	TxnRef        string `form:"vnp_TxnRef" json:"vnp_TxnRef"`
+	SecureHash    string `form:"vnp_SecureHash" json:"vnp_SecureHash"`
 }
 
 func (*vnpayService) Name() string {
@@ -82,6 +98,26 @@ func (vp *vnpayService) UrlPayment(data interface{}) (*ResponseUrl, error) {
 	}, nil
 }
 
+func (vp *vnpayService) Callback(data interface{}) (*ResponseCallback, error) {
+	request, ok := data.(VnpayRequestCallback)
+	if !ok {
+		return nil, errors.New("input is not type VnpayRequestCallback")
+	}
+	if vp.checkSumCallback(request) == false {
+		return nil, errors.New("signature is error")
+	}
+	return &ResponseCallback{request.Amount, request.TxnRef, request.OrderInfo}, nil
+}
+
+func (vp *vnpayService) checkSumCallback(data VnpayRequestCallback) bool {
+	jsonval, _ := json.Marshal(data)
+	var req map[string]interface{}
+	json.Unmarshal(jsonval, &req)
+	delete(req, "vnp_SecureHash")
+	signdata := vp.hashSecret + generateQueryBasic(req)
+	return NewSHA256(signdata) == data.SecureHash
+}
+
 func (vp *vnpayService) getRequestParam(request VnpayRequest) (VnpayRequestFull, error) {
 	body := VnpayRequestFull{}
 	body.Amount = fmt.Sprintf("%d", request.Amount*100)
@@ -120,7 +156,6 @@ func (vp *vnpayService) genrateQueryString(data VnpayRequestFull) string {
 	case "md5":
 		encodeStr += "&vnp_SecureHash=" + GetMD5Hash(signdata)
 	default:
-		fmt.Println(signdata)
 		encodeStr += "&vnp_SecureHash=" + NewSHA256(signdata)
 	}
 	return encodeStr

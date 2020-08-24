@@ -15,6 +15,8 @@ func NewServicePayment(key string) goservice.PrefixConfigure {
 	switch key {
 	case KeyVnPay:
 		return &vnpayService{}
+	case KeyZaloPay:
+		return &zalopayService{}
 	default:
 		panic("not found")
 	}

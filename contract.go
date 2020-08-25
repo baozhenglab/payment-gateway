@@ -20,4 +20,5 @@ type PaymentService interface {
 const (
 	KeyVnPay   = "vnpay"
 	KeyZaloPay = "zalopay"
+	KeyMomo    = "momo"
 )

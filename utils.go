@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"reflect"
 	"sort"
 )
 
@@ -85,4 +86,12 @@ func generateQueryBasic(data interface{}) string {
 func checkTypeNumber(data interface{}) bool {
 	t := fmt.Sprintf("%T", data)
 	return indexOfString([]string{"int", "int32", "int64", "float64"}, t) > -1
+}
+
+func getType(myvar interface{}) string {
+	if t := reflect.TypeOf(myvar); t.Kind() == reflect.Ptr {
+		return "*" + t.Elem().Name()
+	} else {
+		return t.Name()
+	}
 }

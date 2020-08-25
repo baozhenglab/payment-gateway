@@ -17,6 +17,8 @@ func NewServicePayment(key string) goservice.PrefixConfigure {
 		return &vnpayService{}
 	case KeyZaloPay:
 		return &zalopayService{}
+	case KeyMomo:
+		return &momoService{}
 	default:
 		panic("not found")
 	}
